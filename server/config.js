@@ -8,8 +8,8 @@ const config = {
     port: 587,
     secure: false,
     auth: {
-      user: 'sailikith57@gmail.com',
-      pass: 'vsnngggfjmjaigsd'
+      user: 'chottusai586@gmail.com',
+      pass: 'alqlhwzvgbvavcsc'
     }
   },
   
