@@ -68,7 +68,9 @@ class EmailService {
 
   async sendOTP(email, otp) {
     try {
+      console.log('Attempting to send OTP to:', email);
       const { transporter, isEthereal } = await this.transporterPromise;
+      console.log('Using transporter - Ethereal:', isEthereal);
       const mailOptions = {
         from: `"AgroAnalytics" <${config.smtp.auth.user}>`,
         to: email,
@@ -114,7 +116,12 @@ class EmailService {
       }
       return { success: true, messageId: result.messageId };
     } catch (error) {
-      console.error('Error sending OTP email:', error);
+      console.error('❌ Error sending OTP email:', {
+        message: error.message,
+        code: error.code,
+        response: error.response,
+        command: error.command
+      });
       return { success: false, error: error.message };
     }
   }
