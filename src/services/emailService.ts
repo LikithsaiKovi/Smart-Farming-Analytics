@@ -10,10 +10,12 @@ emailjs.init(EMAILJS_PUBLIC_KEY);
 
 interface EmailParams {
   to_email: string;
+  to_name?: string;
   otp: string;
   name?: string;
   from_name?: string;
   subject?: string;
+  reply_to?: string;
 }
 
 export const emailService = {
@@ -21,10 +23,12 @@ export const emailService = {
     try {
       const templateParams: EmailParams = {
         to_email: email,
+        to_name: name,
         otp: otp,
         name: name,
         from_name: 'AgroAnalytics',
-        subject: 'Your OTP for AgroAnalytics Login'
+        subject: 'Your OTP for AgroAnalytics Login',
+        reply_to: email
       };
 
       await emailjs.send(
@@ -48,10 +52,12 @@ export const emailService = {
     try {
       const templateParams: EmailParams = {
         to_email: email,
+        to_name: name,
         otp: otp,
         name: name,
         from_name: 'AgroAnalytics',
-        subject: 'Verify Your Email - AgroAnalytics Account'
+        subject: 'Verify Your Email - AgroAnalytics Account',
+        reply_to: email
       };
 
       await emailjs.send(
