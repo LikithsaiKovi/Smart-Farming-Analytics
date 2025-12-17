@@ -11,7 +11,7 @@ const config = {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS
     },
-    useEthereal: process.env.USE_ETHEREAL_SMTP === 'true'
+    useEthereal: process.env.USE_ETHEREAL_SMTP === 'true' || !process.env.SMTP_USER || !process.env.SMTP_PASS
   },
   
   // OpenWeather API
