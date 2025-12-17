@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { apiService } from "../services/api";
+import { emailService } from "../services/emailService";
 import { toast } from "sonner";
 
 interface LoginPageProps {
@@ -35,26 +36,35 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     setError("");
 
     try {
+      // Step 1: Generate OTP on backend
       const response = await apiService.sendOTP(email);
-      if (response.success) {
-        setOtpSent(true);
-        setOtpExpiresIn(response.data?.expiresIn || 600);
-        toast.success("OTP sent to your email!");
+      if (response.success && response.data?.otp) {
+        // Step 2: Send OTP via EmailJS from client
+        const emailResult = await emailService.sendOTP(email, response.data.otp);
         
-        // Start countdown
-        const countdown = setInterval(() => {
-          setOtpExpiresIn(prev => {
-            if (prev <= 1) {
-              clearInterval(countdown);
-              setOtpSent(false);
-              return 0;
-            }
-            return prev - 1;
-          });
-        }, 1000);
+        if (emailResult.success) {
+          setOtpSent(true);
+          setOtpExpiresIn(response.data?.expiresIn || 600);
+          toast.success("OTP sent to your email!");
+          
+          // Start countdown
+          const countdown = setInterval(() => {
+            setOtpExpiresIn(prev => {
+              if (prev <= 1) {
+                clearInterval(countdown);
+                setOtpSent(false);
+                return 0;
+              }
+              return prev - 1;
+            });
+          }, 1000);
+        } else {
+          setError(emailResult.error || "Failed to send OTP email");
+          toast.error(emailResult.error || "Failed to send OTP email");
+        }
       } else {
-        setError(response.error || "Failed to send OTP");
-        toast.error(response.error || "Failed to send OTP");
+        setError(response.error || "Failed to generate OTP");
+        toast.error(response.error || "Failed to generate OTP");
       }
     } catch (error) {
       setError("Network error. Please try again.");
@@ -102,24 +112,33 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     setError("");
 
     try {
+      // Step 1: Generate registration OTP on backend
       const response = await apiService.register(name, email, parseInt(farmSize));
-      if (response.success) {
-        setRegistrationStep('otp');
-        setOtpSent(true);
-        setOtpExpiresIn(response.data?.expiresIn || 600);
-        toast.success("OTP sent to your email for verification!");
+      if (response.success && response.data?.otp) {
+        // Step 2: Send OTP via EmailJS from client
+        const emailResult = await emailService.sendRegistrationOTP(email, name, response.data.otp);
         
-        // Start countdown
-        const countdown = setInterval(() => {
-          setOtpExpiresIn(prev => {
-            if (prev <= 1) {
-              clearInterval(countdown);
-              setOtpSent(false);
-              return 0;
-            }
-            return prev - 1;
-          });
-        }, 1000);
+        if (emailResult.success) {
+          setRegistrationStep('otp');
+          setOtpSent(true);
+          setOtpExpiresIn(response.data?.expiresIn || 600);
+          toast.success("OTP sent to your email for verification!");
+          
+          // Start countdown
+          const countdown = setInterval(() => {
+            setOtpExpiresIn(prev => {
+              if (prev <= 1) {
+                clearInterval(countdown);
+                setOtpSent(false);
+                return 0;
+              }
+              return prev - 1;
+            });
+          }, 1000);
+        } else {
+          setError(emailResult.error || "Failed to send OTP email");
+          toast.error(emailResult.error || "Failed to send OTP email");
+        }
       } else {
         setError(response.error || "Registration failed");
         toast.error(response.error || "Registration failed");

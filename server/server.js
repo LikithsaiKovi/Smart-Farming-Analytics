@@ -98,21 +98,15 @@ app.post('/api/auth/send-otp', async (req, res) => {
 
     console.log('Login OTP generated for:', normalizedEmail, 'OTP:', otp);
 
-    // Send OTP via email
-    const emailResult = await emailService.sendOTP(normalizedEmail, otp);
-
-    if (emailResult.success) {
-      res.json({ 
-        success: true, 
-        message: 'OTP sent successfully to your email',
-        data: { expiresIn: 600 } // 10 minutes in seconds
-      });
-    } else {
-      console.error('Email sending failed:', emailResult.error);
-        res.status(500).json({ 
-          error: 'Failed to send OTP email. Please check your email configuration.' 
-        });
-    }
+    // Return OTP to frontend (client will send via EmailJS)
+    res.json({ 
+      success: true, 
+      message: 'OTP generated successfully',
+      data: { 
+        otp: otp, // Frontend will send this via EmailJS
+        expiresIn: 600 // 10 minutes in seconds
+      }
+    });
   } catch (error) {
     console.error('Error sending OTP:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -244,21 +238,15 @@ app.post('/api/auth/register', async (req, res) => {
         stmt.finalize();
         console.log('Registration OTP stored for:', normalizedEmail, 'OTP:', otp);
 
-        // Send OTP via email
-        const emailResult = await emailService.sendRegistrationOTP(normalizedEmail, name, otp);
-
-        if (emailResult.success) {
-          res.json({ 
-            success: true, 
-            message: 'OTP sent to your email for account verification',
-            data: { expiresIn: 600 } // 10 minutes in seconds
-          });
-        } else {
-          console.error('Email sending failed:', emailResult.error);
-        res.status(500).json({ 
-          error: 'Failed to send registration OTP email. Please check your email configuration.' 
+        // Return OTP to frontend (client will send via EmailJS)
+        res.json({ 
+          success: true, 
+          message: 'OTP generated successfully',
+          data: { 
+            otp: otp, // Frontend will send this via EmailJS
+            expiresIn: 600 // 10 minutes in seconds
+          }
         });
-        }
       });
     });
   } catch (error) {
