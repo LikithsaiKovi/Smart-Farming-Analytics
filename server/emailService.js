@@ -3,45 +3,72 @@ const config = require('./config');
 
 class EmailService {
   constructor() {
-    console.log('SMTP Config:', {
-      host: config.smtp.host,
-      port: config.smtp.port,
-      user: config.smtp.auth.user,
-      pass: config.smtp.auth.pass ? '***hidden***' : 'NOT SET'
-    });
-    
-    this.transporter = nodemailer.createTransport({
-      host: config.smtp.host,
-      port: config.smtp.port,
-      secure: false, // true for 465, false for other ports
-      auth: {
-        user: config.smtp.auth.user,
-        pass: config.smtp.auth.pass
-      },
-      tls: {
-        rejectUnauthorized: false
-      }
-    });
-
-    // Verify transporter configuration
-    this.verifyConnection();
+    this.transporterPromise = this.createTransporter();
   }
 
-  async verifyConnection() {
+  async createTransporter() {
     try {
-      await this.transporter.verify();
+      const useEthereal = config.smtp.useEthereal || !config.smtp.auth.user || !config.smtp.auth.pass;
+
+      if (useEthereal) {
+        const testAccount = await nodemailer.createTestAccount();
+        console.log('Using Ethereal SMTP (mock). Credentials:', {
+          user: testAccount.user,
+          pass: testAccount.pass
+        });
+
+        const transporter = nodemailer.createTransport({
+          host: testAccount.smtp.host,
+          port: testAccount.smtp.port,
+          secure: testAccount.smtp.secure,
+          auth: {
+            user: testAccount.user,
+            pass: testAccount.pass
+          }
+        });
+
+        await transporter.verify();
+        console.log('✅ Ethereal SMTP is ready');
+        return { transporter, isEthereal: true };
+      }
+
+      console.log('SMTP Config:', {
+        host: config.smtp.host,
+        port: config.smtp.port,
+        secure: config.smtp.secure,
+        user: config.smtp.auth.user,
+        pass: config.smtp.auth.pass ? '***hidden***' : 'NOT SET'
+      });
+
+      const transporter = nodemailer.createTransport({
+        host: config.smtp.host,
+        port: config.smtp.port,
+        secure: config.smtp.secure,
+        auth: {
+          user: config.smtp.auth.user,
+          pass: config.smtp.auth.pass
+        },
+        tls: {
+          rejectUnauthorized: false
+        }
+      });
+
+      await transporter.verify();
       console.log('✅ SMTP Server is ready to send emails');
+      return { transporter, isEthereal: false };
     } catch (error) {
       console.log('❌ SMTP Error:', error.message);
       console.log('📧 Please configure your email settings:');
       console.log('   1. Create server/.env file');
       console.log('   2. Add your SMTP credentials');
       console.log('   3. See EMAIL_SETUP.md for details');
+      throw error;
     }
   }
 
   async sendOTP(email, otp) {
     try {
+      const { transporter, isEthereal } = await this.transporterPromise;
       const mailOptions = {
         from: `"AgroAnalytics" <${config.smtp.auth.user}>`,
         to: email,
@@ -80,8 +107,11 @@ class EmailService {
         `
       };
 
-      const result = await this.transporter.sendMail(mailOptions);
+      const result = await transporter.sendMail(mailOptions);
       console.log('OTP email sent successfully:', result.messageId);
+      if (isEthereal) {
+        console.log('Preview URL:', nodemailer.getTestMessageUrl(result));
+      }
       return { success: true, messageId: result.messageId };
     } catch (error) {
       console.error('Error sending OTP email:', error);
@@ -91,6 +121,7 @@ class EmailService {
 
   async sendRegistrationOTP(email, name, otp) {
     try {
+      const { transporter, isEthereal } = await this.transporterPromise;
       const mailOptions = {
         from: `"AgroAnalytics" <${config.smtp.auth.user}>`,
         to: email,
@@ -129,8 +160,11 @@ class EmailService {
         `
       };
 
-      const result = await this.transporter.sendMail(mailOptions);
+      const result = await transporter.sendMail(mailOptions);
       console.log('Registration OTP email sent successfully:', result.messageId);
+      if (isEthereal) {
+        console.log('Preview URL:', nodemailer.getTestMessageUrl(result));
+      }
       return { success: true, messageId: result.messageId };
     } catch (error) {
       console.error('Error sending registration OTP email:', error);
@@ -140,6 +174,7 @@ class EmailService {
 
   async sendWelcomeEmail(email, name) {
     try {
+      const { transporter, isEthereal } = await this.transporterPromise;
       const mailOptions = {
         from: `"AgroAnalytics" <${config.smtp.auth.user}>`,
         to: email,
@@ -173,8 +208,11 @@ class EmailService {
         `
       };
 
-      const result = await this.transporter.sendMail(mailOptions);
+      const result = await transporter.sendMail(mailOptions);
       console.log('Welcome email sent successfully:', result.messageId);
+      if (isEthereal) {
+        console.log('Preview URL:', nodemailer.getTestMessageUrl(result));
+      }
       return { success: true, messageId: result.messageId };
     } catch (error) {
       console.error('Error sending welcome email:', error);
