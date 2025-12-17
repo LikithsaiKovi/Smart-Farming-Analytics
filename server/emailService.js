@@ -8,30 +8,6 @@ class EmailService {
 
   async createTransporter() {
     try {
-      const useEthereal = config.smtp.useEthereal || !config.smtp.auth.user || !config.smtp.auth.pass;
-
-      if (useEthereal) {
-        const testAccount = await nodemailer.createTestAccount();
-        console.log('Using Ethereal SMTP (mock). Credentials:', {
-          user: testAccount.user,
-          pass: testAccount.pass
-        });
-
-        const transporter = nodemailer.createTransport({
-          host: testAccount.smtp.host,
-          port: testAccount.smtp.port,
-          secure: testAccount.smtp.secure,
-          auth: {
-            user: testAccount.user,
-            pass: testAccount.pass
-          }
-        });
-
-        await transporter.verify();
-        console.log('✅ Ethereal SMTP is ready');
-        return { transporter, isEthereal: true };
-      }
-
       console.log('SMTP Config:', {
         host: config.smtp.host,
         port: config.smtp.port,
@@ -59,8 +35,8 @@ class EmailService {
     } catch (error) {
       console.log('❌ SMTP Error:', error.message);
       console.log('📧 Please configure your email settings:');
-      console.log('   1. Create server/.env file');
-      console.log('   2. Add your SMTP credentials');
+      console.log('   1. Get SendGrid API Key from https://sendgrid.com');
+      console.log('   2. Set SMTP_PASS environment variable in Railway');
       console.log('   3. See EMAIL_SETUP.md for details');
       throw error;
     }
@@ -111,9 +87,6 @@ class EmailService {
 
       const result = await transporter.sendMail(mailOptions);
       console.log('OTP email sent successfully:', result.messageId);
-      if (isEthereal) {
-        console.log('Preview URL:', nodemailer.getTestMessageUrl(result));
-      }
       return { success: true, messageId: result.messageId };
     } catch (error) {
       console.error('❌ Error sending OTP email:', {
@@ -169,9 +142,6 @@ class EmailService {
 
       const result = await transporter.sendMail(mailOptions);
       console.log('Registration OTP email sent successfully:', result.messageId);
-      if (isEthereal) {
-        console.log('Preview URL:', nodemailer.getTestMessageUrl(result));
-      }
       return { success: true, messageId: result.messageId };
     } catch (error) {
       console.error('Error sending registration OTP email:', error);
@@ -217,9 +187,6 @@ class EmailService {
 
       const result = await transporter.sendMail(mailOptions);
       console.log('Welcome email sent successfully:', result.messageId);
-      if (isEthereal) {
-        console.log('Preview URL:', nodemailer.getTestMessageUrl(result));
-      }
       return { success: true, messageId: result.messageId };
     } catch (error) {
       console.error('Error sending welcome email:', error);
