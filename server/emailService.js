@@ -3,7 +3,26 @@ const config = require('./config');
 
 class EmailService {
   constructor() {
-    this.transporterPromise = this.createTransporter();
+    this.transporterPromise = null;
+    this.lastError = null;
+  }
+
+  buildTransportOptions() {
+    return {
+      host: config.smtp.host,
+      port: config.smtp.port,
+      secure: config.smtp.secure,
+      auth: {
+        user: config.smtp.auth.user,
+        pass: config.smtp.auth.pass
+      },
+      // Conservative timeouts so failures don't hang/crash
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
+      socketTimeout: 20000,
+      // Keep TLS lenient to avoid PaaS proxy issues
+      tls: { rejectUnauthorized: false }
+    };
   }
 
   async createTransporter() {
@@ -16,22 +35,20 @@ class EmailService {
         pass: config.smtp.auth.pass ? '***hidden***' : 'NOT SET'
       });
 
-      const transporter = nodemailer.createTransport({
-        host: config.smtp.host,
-        port: config.smtp.port,
-        secure: config.smtp.secure,
-        auth: {
-          user: config.smtp.auth.user,
-          pass: config.smtp.auth.pass
-        },
-        tls: {
-          rejectUnauthorized: false
-        }
-      });
+      if (!config.smtp.host || !config.smtp.auth.user || !config.smtp.auth.pass) {
+        const msg = 'SMTP config incomplete (host/user/pass missing)';
+        console.log('❌', msg);
+        this.lastError = new Error(msg);
+        return { transporter: null, isReady: false };
+      }
 
+      const transporter = nodemailer.createTransport(this.buildTransportOptions());
+
+      // Verify but DO NOT throw fatally on failure
       await transporter.verify();
       console.log('✅ SMTP Server is ready to send emails');
-      return { transporter, isEthereal: false };
+      this.lastError = null;
+      return { transporter, isReady: true };
     } catch (error) {
       console.log('❌ SMTP Error:', error.message);
       console.log('📧 Please configure SMTP:');
@@ -41,14 +58,36 @@ class EmailService {
       console.log('      - AWS SES: host=email-smtp.<region>.amazonaws.com, user=SES_SMTP_USER, pass=SES_SMTP_PASS');
       console.log('   2) Set SMTP_FROM_EMAIL to a verified sender');
       console.log('   3) For port 587 set SMTP_SECURE=false; for 465 set true');
-      throw error;
+      this.lastError = error;
+      // Return a non-fatal state so server keeps running
+      return { transporter: null, isReady: false };
     }
+  }
+
+  async getTransporter() {
+    // Lazily (re)create the transporter if needed
+    if (!this.transporterPromise) {
+      this.transporterPromise = this.createTransporter();
+    }
+    const state = await this.transporterPromise;
+    if (state.transporter) return state.transporter;
+
+    // Retry once on-demand when first send happens
+    this.transporterPromise = this.createTransporter();
+    const retryState = await this.transporterPromise;
+    return retryState.transporter || null;
   }
 
   async sendOTP(email, otp) {
     try {
       console.log('Attempting to send OTP to:', email);
-      const { transporter } = await this.transporterPromise;
+      const transporter = await this.getTransporter();
+      if (!transporter) {
+        const msg = 'Email transport not available. Check SMTP connectivity from the server.';
+        console.error('❌ Error sending OTP email:', { message: msg, lastError: this.lastError && this.lastError.message });
+        return { success: false, error: msg };
+      }
+
       const mailOptions = {
         from: `"AgroAnalytics" <${config.smtp.from}>`,
         to: email,
@@ -103,7 +142,13 @@ class EmailService {
 
   async sendRegistrationOTP(email, name, otp) {
     try {
-      const { transporter, isEthereal } = await this.transporterPromise;
+      const transporter = await this.getTransporter();
+      if (!transporter) {
+        const msg = 'Email transport not available. Check SMTP connectivity from the server.';
+        console.error('Error sending registration OTP email:', { message: msg, lastError: this.lastError && this.lastError.message });
+        return { success: false, error: msg };
+      }
+
       const mailOptions = {
         from: `"AgroAnalytics" <${config.smtp.from}>`,
         to: email,
@@ -153,7 +198,13 @@ class EmailService {
 
   async sendWelcomeEmail(email, name) {
     try {
-      const { transporter, isEthereal } = await this.transporterPromise;
+      const transporter = await this.getTransporter();
+      if (!transporter) {
+        const msg = 'Email transport not available. Check SMTP connectivity from the server.';
+        console.error('Error sending welcome email:', { message: msg, lastError: this.lastError && this.lastError.message });
+        return { success: false, error: msg };
+      }
+
       const mailOptions = {
         from: `"AgroAnalytics" <${config.smtp.from}>`,
         to: email,
