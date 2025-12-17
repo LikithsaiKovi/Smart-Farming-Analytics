@@ -9,26 +9,18 @@ const EMAILJS_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || 'templat
 emailjs.init(EMAILJS_PUBLIC_KEY);
 
 interface EmailParams {
-  to_email: string;
-  to_name?: string;
-  otp: string;
-  name?: string;
-  from_name?: string;
-  subject?: string;
-  reply_to?: string;
+  email: string;
+  passcode: string;
+  time?: string;
 }
 
 export const emailService = {
   async sendOTP(email: string, otp: string, name: string = 'User'): Promise<{ success: boolean; error?: string }> {
     try {
       const templateParams: EmailParams = {
-        to_email: email,
-        to_name: name,
-        otp: otp,
-        name: name,
-        from_name: 'AgroAnalytics',
-        subject: 'Your OTP for AgroAnalytics Login',
-        reply_to: email
+        email: email,
+        passcode: otp,
+        time: '15 minutes'
       };
 
       await emailjs.send(
@@ -51,13 +43,9 @@ export const emailService = {
   async sendRegistrationOTP(email: string, name: string, otp: string): Promise<{ success: boolean; error?: string }> {
     try {
       const templateParams: EmailParams = {
-        to_email: email,
-        to_name: name,
-        otp: otp,
-        name: name,
-        from_name: 'AgroAnalytics',
-        subject: 'Verify Your Email - AgroAnalytics Account',
-        reply_to: email
+        email: email,
+        passcode: otp,
+        time: '15 minutes'
       };
 
       await emailjs.send(
