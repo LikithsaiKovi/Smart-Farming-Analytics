@@ -23,6 +23,15 @@ const io = new Server(server, {
 app.use(cors());
 app.use(express.json());
 
+// Root route
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'Smart Farming Analytics API Server',
+    status: 'running',
+    version: '1.0.0'
+  });
+});
+
 // Initialize services
 const emailService = new EmailService();
 const weatherService = new WeatherService();
