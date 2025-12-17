@@ -5,6 +5,7 @@ const { v4: uuidv4 } = require('uuid');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
 const axios = require('axios');
+const path = require('path');
 const config = require('./config');
 const { db, initDatabase } = require('./database');
 const EmailService = require('./emailService');
@@ -23,13 +24,13 @@ const io = new Server(server, {
 app.use(cors());
 app.use(express.json());
 
-// Root route
+// Serve static files from the dist folder (built React app)
+const distPath = path.join(__dirname, '../dist');
+app.use(express.static(distPath));
+
+// Root route - serve index.html for SPA
 app.get('/', (req, res) => {
-  res.json({ 
-    message: 'Smart Farming Analytics API Server',
-    status: 'running',
-    version: '1.0.0'
-  });
+  res.sendFile(path.join(distPath, 'index.html'));
 });
 
 // Initialize services
@@ -471,6 +472,11 @@ io.on('connection', (socket) => {
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
+// SPA fallback - serve index.html for all other routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(distPath, 'index.html'));
 });
 
 // Start server
