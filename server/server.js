@@ -6,6 +6,7 @@ const { createServer } = require('http');
 const { Server } = require('socket.io');
 const axios = require('axios');
 const path = require('path');
+const fs = require('fs');
 const config = require('./config');
 const { db, initDatabase } = require('./database');
 const EmailService = require('./emailService');
@@ -25,13 +26,16 @@ app.use(cors());
 app.use(express.json());
 
 // Serve static files from the dist folder (built React app)
-const distPath = path.join(__dirname, '../dist');
-app.use(express.static(distPath));
+const distPath = path.resolve(__dirname, '../dist');
+console.log('Looking for dist folder at:', distPath);
+console.log('Dist folder exists:', fs.existsSync(distPath));
 
-// Root route - serve index.html for SPA
-app.get('/', (req, res) => {
-  res.sendFile(path.join(distPath, 'index.html'));
-});
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+  console.log('Serving static files from:', distPath);
+} else {
+  console.warn('Warning: dist folder not found. Frontend will not be served.');
+}
 
 // Initialize services
 const emailService = new EmailService();
@@ -474,9 +478,14 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// SPA fallback - serve index.html for all other routes
+// SPA fallback - serve index.html for all other non-API routes
 app.get('*', (req, res) => {
-  res.sendFile(path.join(distPath, 'index.html'));
+  const indexPath = path.resolve(__dirname, '../dist/index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).send('Application not found. Please ensure the frontend is built.');
+  }
 });
 
 // Start server
