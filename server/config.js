@@ -4,13 +4,14 @@ require('dotenv').config();
 const config = {
   // Email Configuration
   smtp: {
-    host: process.env.SMTP_HOST || 'smtp.sendgrid.net',
-    port: parseInt(process.env.SMTP_PORT) || 587,
-    secure: process.env.SMTP_SECURE === 'true' || false,
+    host: process.env.SMTP_HOST, // e.g. smtp.mailgun.org, smtp-relay.brevo.com, email-smtp.us-east-1.amazonaws.com
+    port: parseInt(process.env.SMTP_PORT || '587', 10),
+    secure: process.env.SMTP_SECURE === 'true', // true for 465, false for 587
     auth: {
-      user: process.env.SMTP_USER || 'apikey',
-      pass: process.env.SMTP_PASS || ''
-    }
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS
+    },
+    from: process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER
   },
   
   // OpenWeather API

@@ -34,10 +34,13 @@ class EmailService {
       return { transporter, isEthereal: false };
     } catch (error) {
       console.log('❌ SMTP Error:', error.message);
-      console.log('📧 Please configure your email settings:');
-      console.log('   1. Get SendGrid API Key from https://sendgrid.com');
-      console.log('   2. Set SMTP_PASS environment variable in Railway');
-      console.log('   3. See EMAIL_SETUP.md for details');
+      console.log('📧 Please configure SMTP:');
+      console.log('   1) Provider examples:');
+      console.log('      - Mailgun: host=smtp.mailgun.org, user=postmaster@YOUR_DOMAIN, pass=SMTP_PASSWORD');
+      console.log('      - Brevo:   host=smtp-relay.brevo.com, user=YOUR_LOGIN, pass=SMTP_KEY');
+      console.log('      - AWS SES: host=email-smtp.<region>.amazonaws.com, user=SES_SMTP_USER, pass=SES_SMTP_PASS');
+      console.log('   2) Set SMTP_FROM_EMAIL to a verified sender');
+      console.log('   3) For port 587 set SMTP_SECURE=false; for 465 set true');
       throw error;
     }
   }
@@ -45,10 +48,9 @@ class EmailService {
   async sendOTP(email, otp) {
     try {
       console.log('Attempting to send OTP to:', email);
-      const { transporter, isEthereal } = await this.transporterPromise;
-      console.log('Using transporter - Ethereal:', isEthereal);
+      const { transporter } = await this.transporterPromise;
       const mailOptions = {
-        from: `"AgroAnalytics" <${config.smtp.auth.user}>`,
+        from: `"AgroAnalytics" <${config.smtp.from}>`,
         to: email,
         subject: 'Your OTP for AgroAnalytics Login',
         html: `
@@ -103,7 +105,7 @@ class EmailService {
     try {
       const { transporter, isEthereal } = await this.transporterPromise;
       const mailOptions = {
-        from: `"AgroAnalytics" <${config.smtp.auth.user}>`,
+        from: `"AgroAnalytics" <${config.smtp.from}>`,
         to: email,
         subject: 'Verify Your Email - AgroAnalytics Account',
         html: `
@@ -153,7 +155,7 @@ class EmailService {
     try {
       const { transporter, isEthereal } = await this.transporterPromise;
       const mailOptions = {
-        from: `"AgroAnalytics" <${config.smtp.auth.user}>`,
+        from: `"AgroAnalytics" <${config.smtp.from}>`,
         to: email,
         subject: 'Welcome to AgroAnalytics!',
         html: `
