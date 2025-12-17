@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const axios = require('axios');
 const config = require('./config');
 
 class EmailService {
@@ -81,6 +82,31 @@ class EmailService {
   async sendOTP(email, otp) {
     try {
       console.log('Attempting to send OTP to:', email);
+
+      // If EmailJS provider is selected, send via EmailJS REST API (no SMTP)
+      if ((config.email && config.email.provider) === 'emailjs') {
+        const payload = {
+          service_id: config.email.emailjs.serviceId,
+          template_id: config.email.emailjs.templateId,
+          user_id: config.email.emailjs.publicKey,
+          template_params: {
+            to_email: email,
+            otp,
+            name: 'User',
+            from_name: config.email.emailjs.fromName || 'AgroAnalytics',
+            subject: 'Your OTP for AgroAnalytics Login'
+          }
+        };
+
+        const resp = await axios.post('https://api.emailjs.com/api/v1.0/email/send', payload, {
+          headers: { 'Content-Type': 'application/json' },
+          timeout: 15000
+        });
+        console.log('OTP email sent via EmailJS:', resp.status);
+        return { success: true, provider: 'emailjs' };
+      }
+
+      // Fallback to SMTP transporter
       const transporter = await this.getTransporter();
       if (!transporter) {
         const msg = 'Email transport not available. Check SMTP connectivity from the server.';
@@ -142,6 +168,28 @@ class EmailService {
 
   async sendRegistrationOTP(email, name, otp) {
     try {
+      // EmailJS path
+      if ((config.email && config.email.provider) === 'emailjs') {
+        const payload = {
+          service_id: config.email.emailjs.serviceId,
+          template_id: config.email.emailjs.templateId,
+          user_id: config.email.emailjs.publicKey,
+          template_params: {
+            to_email: email,
+            otp,
+            name,
+            from_name: config.email.emailjs.fromName || 'AgroAnalytics',
+            subject: 'Verify Your Email - AgroAnalytics'
+          }
+        };
+        const resp = await axios.post('https://api.emailjs.com/api/v1.0/email/send', payload, {
+          headers: { 'Content-Type': 'application/json' },
+          timeout: 15000
+        });
+        console.log('Registration OTP sent via EmailJS:', resp.status);
+        return { success: true, provider: 'emailjs' };
+      }
+
       const transporter = await this.getTransporter();
       if (!transporter) {
         const msg = 'Email transport not available. Check SMTP connectivity from the server.';
@@ -198,6 +246,27 @@ class EmailService {
 
   async sendWelcomeEmail(email, name) {
     try {
+      // EmailJS path
+      if ((config.email && config.email.provider) === 'emailjs') {
+        const payload = {
+          service_id: config.email.emailjs.serviceId,
+          template_id: config.email.emailjs.templateId,
+          user_id: config.email.emailjs.publicKey,
+          template_params: {
+            to_email: email,
+            name,
+            from_name: config.email.emailjs.fromName || 'AgroAnalytics',
+            subject: 'Welcome to AgroAnalytics!'
+          }
+        };
+        const resp = await axios.post('https://api.emailjs.com/api/v1.0/email/send', payload, {
+          headers: { 'Content-Type': 'application/json' },
+          timeout: 15000
+        });
+        console.log('Welcome email sent via EmailJS:', resp.status);
+        return { success: true, provider: 'emailjs' };
+      }
+
       const transporter = await this.getTransporter();
       if (!transporter) {
         const msg = 'Email transport not available. Check SMTP connectivity from the server.';

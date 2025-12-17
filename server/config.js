@@ -2,6 +2,16 @@
 require('dotenv').config();
 
 const config = {
+  // Email Provider Selection
+  email: {
+    provider: process.env.EMAIL_PROVIDER || 'emailjs',
+    emailjs: {
+      publicKey: process.env.EMAILJS_PUBLIC_KEY || 'P0-bYcvuPvgZC67Ik',
+      serviceId: process.env.EMAILJS_SERVICE_ID || 'service_5dmvdp8',
+      templateId: process.env.EMAILJS_TEMPLATE_ID || 'template_yx88nmf',
+      fromName: process.env.EMAILJS_FROM_NAME || 'AgroAnalytics'
+    }
+  },
   // Email Configuration
   smtp: {
     host: process.env.SMTP_HOST, // e.g. smtp.mailgun.org, smtp-relay.brevo.com, email-smtp.us-east-1.amazonaws.com
